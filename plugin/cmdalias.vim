@@ -95,18 +95,24 @@ function! CmdAlias(lhs, ...)
     echohl ErrorMsg | echo 'No <rhs> specified for alias' | echohl NONE
     return
   endif
-  if has_key(s:aliases, rhs)
+  if has_key(s:aliases, rhs) || exists('b:aliases') && has_key(b:aliases, rhs)
     echohl ErrorMsg | echo "Another alias can't be used as <rhs>" | echohl NONE
     return
   endif
-  if a:0 > 1
-    let flags = join(a:000[1:], ' ').' '
+  if a:0 > 1 && a:2 ==# "<buffer>"
+    if ! exists('b:aliases')
+      let b:aliases = {}
+    endif
+    let b:aliases[lhs] = rhs
   else
-    let flags = ''
+    let s:aliases[lhs] = rhs
   endif
-  " exec 'cnoreabbr <expr> '.flags.a:lhs.
-	" \ " <SID>ExpandAlias('".lhs."', '".rhs."')"
-  let s:aliases[lhs] = rhs
+endfunction
+
+function! s:GetAlias(aliases, testValue)
+  let aliasNames = keys(a:aliases)
+  let aliasIdx = index(aliasNames, a:testValue)
+  return (aliasIdx == -1 ? ['', ''] : [aliasNames[aliasIdx], a:aliases[aliasNames[aliasIdx]]])
 endfunction
 
 let s:singleRangeExpr = '\%(\d*\|[.$%]\|''\S\|\\[/?&]\|/.\{-}/\|?.\{-}?\)\%([+-]\d*\)\?'
@@ -116,17 +122,22 @@ function! s:ExpandAlias()
   " getcmdpos() is 1-based.
   let partCmd = strpart(getcmdline(), 0, getcmdpos())
   let aliasUnderCursor = matchstr(partCmd, '\h\w*!\?$')
-  let aliasNames = keys(s:aliases)
-  let aliasIdx = index(aliasNames, aliasUnderCursor)
-  if aliasIdx == -1
+
+  let alias = ''
+  if exists('b:aliases')
+    let [alias, expansion] = s:GetAlias(b:aliases, aliasUnderCursor)
+  endif
+  if empty(alias)
+    let [alias, expansion] = s:GetAlias(s:aliases, aliasUnderCursor)
+  endif
+  if empty(alias)
     return ' '
   endif
 
-  let alias = aliasNames[aliasIdx]
   if partCmd =~# '\%(^\|\\\@<!|\)\s*\%('.s:cmdPrefixesExpr.'\)\?'.s:rangeExpr.'\s*'.alias.'$'
     " Note: alias is ASCII-only, so the length always corresponds with the
     " number of characters. 
-    return repeat("\<BS>", len(alias)).s:aliases[alias].' '
+    return repeat("\<BS>", len(alias)).expansion.' '
   endif
 
   return ' '
@@ -142,7 +153,6 @@ function! UnAlias(...)
   endif
 
   let aliasesToRemove = filter(copy(a:000), 'has_key(s:aliases, v:val) != 0')
-  "let aliasesToRemove = map(filter(copy(s:aliases), 'index(a:000, v:val[0]) != -1'), 'v:val[0]')
   if len(aliasesToRemove) != a:0
     let badAliases = filter(copy(a:000), 'index(aliasesToRemove, v:val) == -1')
     echohl ErrorMsg | echo "No such aliases: " . join(badAliases, ' ') | echohl NONE
@@ -154,15 +164,27 @@ function! UnAlias(...)
   call filter(s:aliases, 'index(aliasesToRemove, v:key) == -1')
 endfunction
 
-function! s:Aliases(...)
+function! s:FilterAliases(aliases, listPrefix, ...)
   if a:0 == 0
-    let goodAliases = keys(s:aliases)
+    let goodAliases = keys(a:aliases)
   else
-    let goodAliases = filter(copy(a:000), 'has_key(s:aliases, v:val) != 0')
+    let goodAliases = filter(copy(a:000), 'has_key(a:aliases, v:val) != 0')
   endif
+  if len(goodAliases) == 0
+    return []
+  else
+    return map(copy(goodAliases), 'printf("%-8s\t%s%s", v:val, a:listPrefix, a:aliases[v:val])')
+  endif
+endfunction
+function! s:Aliases(...)
+  let goodAliases = []
+  if exists('b:aliases')
+    let goodAliases = call('s:FilterAliases', [b:aliases, '@'] + a:000)
+  endif
+  let goodAliases += call('s:FilterAliases', [s:aliases, ' '] + a:000)
+
   if len(goodAliases) > 0
-    let maxLhsLen = max(map(copy(goodAliases), 'strlen(v:val[0])'))
-    echo join(map(copy(goodAliases), 'printf("%-".maxLhsLen."s %s", v:val, s:aliases[v:val])'), "\n")
+    echo join(goodAliases, "\n")
   endif
 endfunction
 
