@@ -72,6 +72,7 @@ set cpo&vim
 if !exists('g:cmdaliasCmdPrefixes')
   let g:cmdaliasCmdPrefixes = 'verbose debug silent redir'
 endif
+let s:cmdPrefixesExpr = empty(g:cmdaliasCmdPrefixes) ? '' : '\%('.substitute(g:cmdaliasCmdPrefixes, ' ', '!\\?\\|', 'g').'\)\s\+'
 
 command! -nargs=+ Alias :call CmdAlias(<f-args>)
 command! -nargs=* UnAlias :call UnAlias(<f-args>)
@@ -84,8 +85,8 @@ endif
 " Define a new command alias.
 function! CmdAlias(lhs, ...)
   let lhs = a:lhs
-  if lhs !~ '^\w\+$'
-    echohl ErrorMsg | echo 'Only word characters are supported on <lhs>' | echohl NONE
+  if lhs !~ '^\h\w*$'
+    echohl ErrorMsg | echo 'Only word characters that do not start with a digit are supported on <lhs>' | echohl NONE
     return
   endif
   if a:0 > 0
@@ -103,26 +104,36 @@ function! CmdAlias(lhs, ...)
   else
     let flags = ''
   endif
-  exec 'cnoreabbr <expr> '.flags.a:lhs.
-	\ " <SID>ExpandAlias('".lhs."', '".rhs."')"
+  " exec 'cnoreabbr <expr> '.flags.a:lhs.
+	" \ " <SID>ExpandAlias('".lhs."', '".rhs."')"
   let s:aliases[lhs] = rhs
 endfunction
 
-let s:rangeExpr = '\d*'	" TODO: Add branches for all other ranges. 
-function! s:ExpandAlias(lhs, rhs)
-  if getcmdtype() == ":"
-    " Determine if we are at the start of the command-line.
-    " getcmdpos() is 1-based.
-    let partCmd = strpart(getcmdline(), 0, getcmdpos())
-    let prefixes = ['^'] + map(split(g:cmdaliasCmdPrefixes, ' '), '"^".v:val."!\\?"')
-    for prefix in prefixes
-      if partCmd =~# prefix.'\s*'.s:rangeExpr.'\s*'.a:lhs.'$'
-	return a:rhs
-      endif
-    endfor
+let s:singleRangeExpr = '\%(\d*\|[.$%]\|''\S\|\\[/?&]\|/.\{-}/\|?.\{-}?\)\%([+-]\d*\)\?'
+let s:rangeExpr = s:singleRangeExpr.'\%([,;]'.s:singleRangeExpr.'\)\?'
+function! s:ExpandAlias()
+  " Determine if we are at the start of the command-line.
+  " getcmdpos() is 1-based.
+  let partCmd = strpart(getcmdline(), 0, getcmdpos())
+  let aliasUnderCursor = matchstr(partCmd, '\h\w*!\?$')
+  let aliasNames = keys(s:aliases)
+  let aliasIdx = index(aliasNames, aliasUnderCursor)
+  if aliasIdx == -1
+    return ' '
   endif
-  return a:lhs
+
+  let alias = aliasNames[aliasIdx]
+  if partCmd =~# '\%(^\|\\\@<!|\)\s*\%('.s:cmdPrefixesExpr.'\)\?'.s:rangeExpr.'\s*'.alias.'$'
+    " Note: alias is ASCII-only, so the length always corresponds with the
+    " number of characters. 
+    return repeat("\<BS>", len(alias)).s:aliases[alias].' '
+  endif
+
+  return ' '
 endfunction
+cmap <expr> <Space> getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias() : ' '
+cnoremap <SID>CR <CR>
+cmap <CR> <Space><BS><SID>CR
 
 function! UnAlias(...)
   if a:0 == 0
