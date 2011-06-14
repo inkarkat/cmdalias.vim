@@ -152,16 +152,23 @@ function! UnAlias(...)
     return
   endif
 
-  let aliasesToRemove = filter(copy(a:000), 'has_key(s:aliases, v:val) != 0')
-  if len(aliasesToRemove) != a:0
-    let badAliases = filter(copy(a:000), 'index(aliasesToRemove, v:val) == -1')
-    echohl ErrorMsg | echo "No such aliases: " . join(badAliases, ' ') | echohl NONE
-    return
+  let aliasesToRemove = copy(a:000)
+  if exists('b:aliases')
+    let aliases = filter(copy(aliasesToRemove), 'has_key(b:aliases, v:val)')
+    if len(aliases) > 0
+      call filter(b:aliases, 'index(aliases, v:key) == -1')
+    endif
+    call filter(aliasesToRemove, 'index(aliases, v:val) == -1')
   endif
-  for alias in aliasesToRemove
-    exec 'cunabbr' alias
-  endfor
-  call filter(s:aliases, 'index(aliasesToRemove, v:key) == -1')
+
+  let aliases = filter(copy(aliasesToRemove), 'has_key(s:aliases, v:val)')
+  if len(aliases) > 0
+    call filter(s:aliases, 'index(aliases, v:key) == -1')
+  endif
+  if len(aliases) != len(aliasesToRemove)
+    let badAliases = filter(copy(aliasesToRemove), 'index(aliases, v:val) == -1')
+    echohl ErrorMsg | echo "No such aliases: " . join(badAliases, ' ') | echohl NONE
+  endif
 endfunction
 
 function! s:FilterAliases(aliases, listPrefix, ...)
