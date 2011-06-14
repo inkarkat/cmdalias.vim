@@ -118,11 +118,16 @@ endfunction
 let s:singleRangeExpr = '\%(\d*\|[.$%]\|''\S\|\\[/?&]\|/.\{-}/\|?.\{-}?\)\%([+-]\d*\)\?'
 let s:rangeExpr = s:singleRangeExpr.'\%([,;]'.s:singleRangeExpr.'\)\?'
 function! s:ExpandAlias()
-  " Determine if we are at the start of the command-line.
-  " getcmdpos() is 1-based.
   let partCmd = strpart(getcmdline(), 0, getcmdpos())
-  let aliasUnderCursor = matchstr(partCmd, '\h\w*!\?$')
 
+  " First just grab the command before the cursor. 
+  let commandMatch = matchlist(partCmd, '\(\h\w*\)\(!\?\)$')
+  if commandMatch == []
+    return ' '
+  endif
+  let [commandUnderCursor, aliasUnderCursor, commandBang] = commandMatch[0:2]
+
+  " And test whether it is aliased. 
   let alias = ''
   if exists('b:aliases')
     let [alias, expansion] = s:GetAlias(b:aliases, aliasUnderCursor)
@@ -134,16 +139,21 @@ function! s:ExpandAlias()
     return ' '
   endif
 
-  if partCmd =~# '\%(^\|\\\@<!|\)\s*\%('.s:cmdPrefixesExpr.'\)\?'.s:rangeExpr.'\s*'.alias.'$'
+  if partCmd =~# '\%(^\|\\\@<!|\)\s*\%('.s:cmdPrefixesExpr.'\)\?'.s:rangeExpr.'\s*'.commandUnderCursor.'$'
     " Note: alias is ASCII-only, so the length always corresponds with the
     " number of characters. 
-    return repeat("\<BS>", len(alias)).expansion.' '
+    return repeat("\<BS>", len(commandUnderCursor)).expansion.commandBang.' '
   endif
 
   return ' '
 endfunction
+" If :cnoremap is used, the mapping doesn't trigger expansion of :cabbrev any
+" more. 
 cmap <expr> <Space> getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias() : ' '
+" Avoid recursive mapping via intermediate :cnoremap mapping. 
 cnoremap <SID>CR <CR>
+" Despite :cmap, a remapped <CR> doesn't trigger expansion of :cabbrev any more. 
+" A <Space><BS> combo will do this for us, and also expand our aliases. 
 cmap <CR> <Space><BS><SID>CR
 
 function! UnAlias(...)
