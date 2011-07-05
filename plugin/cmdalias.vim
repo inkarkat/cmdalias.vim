@@ -5,7 +5,7 @@
 " Last Change: 15-Jun-2011
 " Created:     07-Jul-2003
 " Requires: Vim-7.0 or higher
-" Version: 4.0.0
+" Version: 4.0.1
 " Licence: This program is free software; you can redistribute it and/or
 "          modify it under the terms of the GNU General Public License.
 "          See http://www.gnu.org/copyleft/gpl.txt 
@@ -71,9 +71,9 @@ let s:save_cpo = &cpo
 set cpo&vim
 
 if !exists('g:cmdaliasCmdPrefixes')
-  let g:cmdaliasCmdPrefixes = 'verbose debug silent redir'
+  let g:cmdaliasCmdPrefixes = 'verbose debug silent redir vertical leftabove aboveleft rightbelow belowright topleft botright argdo bufdo tab tabdo windo'
 endif
-let s:cmdPrefixesExpr = empty(g:cmdaliasCmdPrefixes) ? '' : '\%('.substitute(g:cmdaliasCmdPrefixes, ' ', '!\\?\\|', 'g').'\)\s\+'
+let s:cmdPrefixesExpr = empty(g:cmdaliasCmdPrefixes) ? '' : '\%('.substitute(g:cmdaliasCmdPrefixes, ' ', '!\\?\\s\\+\\|', 'g').'\)\+'
 
 command! -nargs=+ Alias :call CmdAlias(<f-args>)
 command! -nargs=* UnAlias :call UnAlias(<f-args>)
