@@ -153,11 +153,46 @@ endfunction
 " If :cnoremap is used, the mapping doesn't trigger expansion of :cabbrev any
 " more. 
 cmap <expr> <Space> getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias() : ' '
-" Avoid recursive mapping via intermediate :cnoremap mapping. 
-cnoremap <SID>CR <CR>
-" Despite :cmap, a remapped <CR> doesn't trigger expansion of :cabbrev any more. 
-" A <Space><BS> combo will do this for us, and also expand our aliases. 
-cmap <CR> <Space><BS><SID>CR
+
+
+function! s:OnCmdlineExit( exitKey )
+  " Remove temporary hooks. 
+  cunmap <CR>
+  cunmap <Esc>
+  cunmap <C-c>
+
+  return a:exitKey
+endfunction
+
+cnoremap <expr> <SID>CR <SID>OnCmdlineExit("\<lt>CR>")
+function! s:InstallCommandLineHook()
+  " Despite :cmap, a remapped <CR> doesn't trigger expansion of :cabbrev any more. 
+  " A <Space><BS> combo will do this for us, and also expand our aliases (via the
+  " :cmap <Space> defined by this plugin). 
+  "
+  " Unfortunately, any :cmap'ped <CR> will also suppress the automatic opening
+  " of the folds of a search result when doing a search via / and ?. (This is
+  " due to Vim's internal rules about auto-opening folds, which get suppressed
+  " whenever such a command is executed not directly by the user.) The only way
+  " to work around this is to define the <CR> hook only temporarily whenever a
+  " command-line of type "Ex command" is opened, so that there is no <CR> :cmap
+  " in all other types of command-line mode. 
+
+  " Expand Vim abbreviations and our own aliases also when submitting the
+  " entered command-line. 
+  " Avoid recursive <CR> mapping via intermediate :cnoremap <CR> mapping, and
+  " remove the hooks inside that final mapping. 
+  cmap <CR> <Space><BS><SID>CR
+
+  " Remove hooks when command-line mode is aborted, too. 
+  " Note: Must always use <C-c> to exit, <Esc> somehow doesn't work. 
+  cnoremap <expr> <Esc> <SID>OnCmdlineExit("\<lt>C-c>")
+  cnoremap <expr> <C-c> <SID>OnCmdlineExit("\<lt>C-c>")
+
+  return ':'
+endfunction
+nnoremap <expr> : <SID>InstallCommandLineHook()
+
 
 function! UnAlias(...)
   if a:0 == 0
