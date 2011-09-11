@@ -127,20 +127,24 @@ endfunction
 
 let s:singleRangeExpr = '\%(\d*\|[.$%]\|''\S\|\\[/?&]\|/.\{-}/\|?.\{-}?\)\%([+-]\d*\)\?'
 let s:rangeExpr = s:singleRangeExpr.'\%([,;]'.s:singleRangeExpr.'\)\?'
-function! s:ExpandAlias()
+function! s:ExpandAlias(key)
+  if getcmdtype() !=# ':' || &paste
+    return a:key
+  endif
+
   let partCmd = strpart(getcmdline(), 0, getcmdpos())
 
   " First just grab the command before the cursor. 
   let commandMatch = matchlist(partCmd, '\(\h\w*\)\(!\?\)$')
   if commandMatch == []
-    return ' '
+    return a:key
   endif
   let [commandUnderCursor, aliasUnderCursor, commandBang] = commandMatch[0:2]
 
   " And test whether it is a command, or just appears somewhere else, e.g. as
   " part of an argument. 
   if partCmd !~# '\%(^\|\\\@<!|\)\s*\%('.s:cmdPrefixesExpr.'\)\?'.s:rangeExpr.'\s*'.commandUnderCursor.'$'
-    return ' '
+    return a:key
   endif
 
   " Then test whether it is aliased. 
@@ -152,16 +156,35 @@ function! s:ExpandAlias()
     let [alias, expansion] = s:GetAlias(s:aliases, aliasUnderCursor)
   endif
   if empty(alias)
-    return ' '
+    return a:key
   endif
 
   " Note: commandUnderCursor is ASCII-only, so the length always corresponds to
   " the number of characters. 
-  return repeat("\<BS>", len(commandUnderCursor)).expansion.commandBang.' '
+  return repeat("\<BS>", len(commandUnderCursor)).expansion.commandBang.a:key
 endfunction
-" If :cnoremap is used, the mapping doesn't trigger expansion of :cabbrev any
-" more. 
-cmap <expr> <Space> getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias() : ' '
+function! s:MapTriggers()
+  " Commands are usually <Space>-delimited, but can also be directly followed by
+  " a regular expression (like :substitute, :ijump, etc.). According to :help
+  " E146, the delimiter can be almost any single-byte character, so we're
+  " building the mappings for them here. 
+  for key in map(range(0, 255), 'nr2char(v:val)')
+    if len(key) == 1 && key =~# '\p' && key !~# '[[:alpha:][:digit:]\\"|]'
+      if ! empty(maparg(key, 'c'))
+        " Avoid clobbering command-line mappings from other plugins. 
+        continue
+      endif
+
+      " If :cnoremap is used, the mapping doesn't trigger expansion of :cabbrev
+      " any more. 
+      execute printf('cmap <expr> %s <SID>ExpandAlias(%s)',
+      \ (key ==# ' ' ? '<Space>' : key),
+      \ string(key)
+      \)
+    endif
+  endfor
+endfunction
+call s:MapTriggers()
 
 
 function! s:OnCmdlineExit( exitKey )
