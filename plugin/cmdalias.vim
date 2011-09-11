@@ -2,6 +2,7 @@
 " Author: Hari Krishna Dara (hari.vim at gmail dot com)
 " Contributors: Ingo Karkat (swdev at ingo-karkat dot de)
 "               - Replace :cabbr with separate alias implementation. 
+"               - Support more cmd prefixes. 
 " Last Change: 15-Jun-2011
 " Created:     07-Jul-2003
 " Requires: Vim-7.0 or higher
@@ -73,7 +74,15 @@ set cpo&vim
 if !exists('g:cmdaliasCmdPrefixes')
   let g:cmdaliasCmdPrefixes = 'verbose debug silent redir vertical leftabove aboveleft rightbelow belowright topleft botright argdo bufdo tab tabdo windo'
 endif
-let s:cmdPrefixesExpr = empty(g:cmdaliasCmdPrefixes) ? '' : '\%('.substitute(g:cmdaliasCmdPrefixes, ' ', '!\\?\\s\\+\\|', 'g').'\)\+'
+let s:cmdPrefixesExpr = '\%('.
+\ join(
+\   map(
+\     split(g:cmdaliasCmdPrefixes),
+\     'v:val.''!\?\s\+'''
+\   ),
+\   '\|'
+\ ).
+\ '\)\+'
 
 command! -nargs=+ Alias :call CmdAlias(<f-args>)
 command! -nargs=* UnAlias :call UnAlias(<f-args>)
