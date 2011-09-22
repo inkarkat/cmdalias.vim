@@ -3,10 +3,10 @@
 " Contributors: Ingo Karkat (swdev at ingo-karkat dot de)
 "               - Replace :cabbr with separate alias implementation. 
 "               - Support more cmd prefixes. 
-" Last Change: 15-Jun-2011
+" Last Change: 12-Sep-2011
 " Created:     07-Jul-2003
 " Requires: Vim-7.0 or higher
-" Version: 4.0.1
+" Version: 4.1.0
 " Licence: This program is free software; you can redistribute it and/or
 "          modify it under the terms of the GNU General Public License.
 "          See http://www.gnu.org/copyleft/gpl.txt 
@@ -127,24 +127,40 @@ endfunction
 
 let s:singleRangeExpr = '\%(\d*\|[.$%]\|''\S\|\\[/?&]\|/.\{-}/\|?.\{-}?\)\%([+-]\d*\)\?'
 let s:rangeExpr = s:singleRangeExpr.'\%([,;]'.s:singleRangeExpr.'\)\?'
-function! s:ExpandAlias(key)
-  if getcmdtype() !=# ':' || &paste
-    return a:key
-  endif
-
+" Commands are usually <Space>-delimited, but can also be directly followed by
+" an argument (like :substitute, :ijump, etc.). According to :help E146, the
+" delimiter can be almost any single-byte character. 
+" Note: We use branches, not a (better performing?) single /[...]/ atom, because
+" of the uncertainties of escaping these characters. 
+function! s:IsCmdDelimiter(char)
+    return (len(a:char) == 1 && a:char =~# '\p' && a:char !~# '[[:alpha:][:digit:]\\"|]')
+endfunction
+let s:cmdDelimiterExpr = '\V\%(' . 
+\ join(
+\   filter(
+\     map(
+\       range(0, 255),
+\       'nr2char(v:val)'
+\     ),
+\     's:IsCmdDelimiter(v:val)'
+\   ),
+\   '\|'
+\ ). '\)\m'
+function! s:ExpandAlias()
   let partCmd = strpart(getcmdline(), 0, getcmdpos())
 
   " First just grab the command before the cursor. 
-  let commandMatch = matchlist(partCmd, '\(\h\w*\)\(!\?\)$')
+  let commandMatch = matchlist(partCmd, '\(\h\w*\)\(!\?\)\(' . s:cmdDelimiterExpr . '.*\|\)$')
   if commandMatch == []
-    return a:key
+    return ' '
   endif
-  let [commandUnderCursor, aliasUnderCursor, commandBang] = commandMatch[0:2]
+  let [commandUnderCursor, aliasUnderCursor, commandBang, commandArgs] = commandMatch[0:3]
 
   " And test whether it is a command, or just appears somewhere else, e.g. as
   " part of an argument. 
-  if partCmd !~# '\%(^\|\\\@<!|\)\s*\%('.s:cmdPrefixesExpr.'\)\?'.s:rangeExpr.'\s*'.commandUnderCursor.'$'
-    return a:key
+  if partCmd !~# '\%(^\|\\\@<!|\)\s*\%('.s:cmdPrefixesExpr.'\)\?'.s:rangeExpr.'\s*' .
+  \ '\V'.escape(commandUnderCursor, '\').'\$'
+    return ' '
   endif
 
   " Then test whether it is aliased. 
@@ -156,35 +172,20 @@ function! s:ExpandAlias(key)
     let [alias, expansion] = s:GetAlias(s:aliases, aliasUnderCursor)
   endif
   if empty(alias)
-    return a:key
+    return ' '
   endif
 
-  " Note: commandUnderCursor is ASCII-only, so the length always corresponds to
-  " the number of characters. 
-  return repeat("\<BS>", len(commandUnderCursor)).expansion.commandBang.a:key
+  return repeat("\<BS>",
+  \ len(split(commandUnderCursor, '\zs'))
+  \) . expansion . commandBang . commandArgs . ' '
 endfunction
-function! s:MapTriggers()
-  " Commands are usually <Space>-delimited, but can also be directly followed by
-  " a regular expression (like :substitute, :ijump, etc.). According to :help
-  " E146, the delimiter can be almost any single-byte character, so we're
-  " building the mappings for them here. 
-  for key in map(range(0, 255), 'nr2char(v:val)')
-    if len(key) == 1 && key =~# '\p' && key !~# '[[:alpha:][:digit:]\\"|]'
-      if ! empty(maparg(key, 'c'))
-        " Avoid clobbering command-line mappings from other plugins. 
-        continue
-      endif
-
-      " If :cnoremap is used, the mapping doesn't trigger expansion of :cabbrev
-      " any more. 
-      execute printf('cmap <expr> %s <SID>ExpandAlias(%s)',
-      \ (key ==# ' ' ? '<Space>' : key),
-      \ string(key)
-      \)
-    endif
-  endfor
-endfunction
-call s:MapTriggers()
+" We only expand on <Space>, not on all non-alphanumeric characters that can
+" delimit a command, because all the necessary :cmaps may interfere with other
+" plugins' mappings. Instead, an argument that directly follows the command is
+" handled inside s:ExpandAlias(). 
+" Note: If :cnoremap is used, the mapping doesn't trigger expansion of :cabbrev
+" any more. 
+cmap <expr> <Space> getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias() : ' '
 
 
 function! s:OnCmdlineExit( exitKey )
