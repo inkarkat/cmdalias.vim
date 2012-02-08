@@ -135,7 +135,7 @@ let s:rangeExpr = s:singleRangeExpr.'\%([,;]'.s:singleRangeExpr.'\)\?'
 function! s:IsCmdDelimiter(char)
     return (len(a:char) == 1 && a:char =~# '\p' && a:char !~# '[[:alpha:][:digit:]\\"|]')
 endfunction
-let s:cmdDelimiterExpr = '\V\%(' . 
+let s:cmdDelimiterExpr = '\V\C\%(' . 
 \ join(
 \   filter(
 \     map(
