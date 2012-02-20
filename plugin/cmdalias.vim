@@ -254,7 +254,7 @@ endfunction
 
 function! s:FilterAliases(aliases, listPrefix, ...)
   if a:0 == 0
-    let goodAliases = keys(a:aliases)
+    let goodAliases = sort(keys(a:aliases))
   else
     let goodAliases = filter(copy(a:000), 'has_key(a:aliases, v:val) != 0')
   endif
