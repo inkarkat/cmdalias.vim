@@ -3,7 +3,7 @@
 " Contributors: Ingo Karkat (swdev at ingo-karkat dot de)
 "               - Replace :cabbr with separate alias implementation. 
 "               - Support more cmd prefixes. 
-" Last Change: 12-Sep-2011
+" Last Change: 21-Feb-2012
 " Created:     07-Jul-2003
 " Requires: Vim-7.0 or higher
 " Version: 4.1.0
@@ -147,7 +147,7 @@ let s:cmdDelimiterExpr = '\V\C\%(' .
 \   '\|'
 \ ). '\)\m'
 function! s:ExpandAlias()
-  let partCmd = strpart(getcmdline(), 0, getcmdpos())
+  let partCmd = strpart(getcmdline(), 0, getcmdpos() - 1)
 
   " First just grab the command before the cursor. 
   let commandMatch = matchlist(partCmd, '\(\h\w*\)\(!\?\)\(' . s:cmdDelimiterExpr . '.*\|\)$')
