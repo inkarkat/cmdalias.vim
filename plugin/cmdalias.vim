@@ -133,7 +133,12 @@ let s:rangeExpr = s:singleRangeExpr.'\%([,;]'.s:singleRangeExpr.'\)\?'
 " Note: We use branches, not a (better performing?) single /[...]/ atom, because
 " of the uncertainties of escaping these characters. 
 function! s:IsCmdDelimiter(char)
-    return (len(a:char) == 1 && a:char =~# '\p' && a:char !~# '[[:alpha:][:digit:]\\"|]')
+  " Note: <Space> must not be included in the set of delimiters; otherwise, the
+  " detection of g:cmdaliasCmdPrefixes won't work any more (because the
+  " combination of "prefix <Space> alias" is matched as commandUnderCursor).
+  " There's no need to include <Space> anyway; since this is our mapped trigger
+  " key, any alias expansion should already have happened earlier. 
+  return (len(a:char) == 1 && a:char =~# '\p' && a:char !~# '[ [:alpha:][:digit:]\\"|]')
 endfunction
 let s:cmdDelimiterExpr = '\V\C\%(' . 
 \ join(
