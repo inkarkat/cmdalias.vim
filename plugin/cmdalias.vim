@@ -72,7 +72,7 @@ let s:save_cpo = &cpo
 set cpo&vim
 
 if !exists('g:cmdaliasCmdPrefixes')
-  let g:cmdaliasCmdPrefixes = 'verbose debug silent redir vertical leftabove aboveleft rightbelow belowright topleft botright argdo bufdo tab tabdo windo'
+  let g:cmdaliasCmdPrefixes = 'verb\%[ose] debug sil\%[ent] redi\%[r] vert\%[ical] lefta\%[bove] abo\%[veleft] rightb\%[elow] bel\%[owright] to\%[pleft] bo\%[tright] argdo bufdo tab tabd\%[o] windo'
 endif
 let s:cmdPrefixesExpr = '\%('.
 \ join(
