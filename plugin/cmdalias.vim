@@ -1,15 +1,15 @@
 " cmdalias.vim: Create aliases for Vim commands.
 " Author: Hari Krishna Dara (hari.vim at gmail dot com)
 " Contributors: Ingo Karkat (swdev at ingo-karkat dot de)
-"               - Replace :cabbr with separate alias implementation. 
-"               - Support more cmd prefixes. 
+"               - Replace :cabbr with separate alias implementation.
+"               - Support more cmd prefixes.
 " Last Change: 21-Feb-2012
 " Created:     07-Jul-2003
 " Requires: Vim-7.0 or higher
 " Version: 4.1.0
 " Licence: This program is free software; you can redistribute it and/or
 "          modify it under the terms of the GNU General Public License.
-"          See http://www.gnu.org/copyleft/gpl.txt 
+"          See http://www.gnu.org/copyleft/gpl.txt
 " Download From:
 "     http://www.vim.org/script.php?script_id=745
 " Usage:
@@ -40,15 +40,15 @@
 "     abbreviation gets expanded no matter where in the command-line you use
 "     it. Also, abbreviations of type "full-id" must be delimited by whitespace
 "     or non-keyword characters, which prevents expansion if ranges like "42" or
-"     "/foo/" are directly prepended to the alias. 
+"     "/foo/" are directly prepended to the alias.
 "     This is where the plugin comes to your rescue by hooking into the
 "     command-line and implementing its own alias expansion. Aliases are only
 "     expanded if they are in command position, i.e. at the beginning of the
 "     command line, or after a "|" command-separator. This takes into account
-"     ranges, command bang and certain prefix commands. 
+"     ranges, command bang and certain prefix commands.
 "   - The plugin provides commands to define, list and undefine command-line
 "     aliases. You can pass an optional flag "<buffer>" to make the alias local
-"     to the current buffer. 
+"     to the current buffer.
 " Drawbacks:
 "   - If the <rhs> is not of the same size as <lhs>, the in-place expansion
 "     feels odd.
@@ -129,18 +129,18 @@ let s:singleRangeExpr = '\%(\d*\|[.$%]\|''\S\|\\[/?&]\|/.\{-}/\|?.\{-}?\)\%([+-]
 let s:rangeExpr = s:singleRangeExpr.'\%([,;]'.s:singleRangeExpr.'\)\?'
 " Commands are usually <Space>-delimited, but can also be directly followed by
 " an argument (like :substitute, :ijump, etc.). According to :help E146, the
-" delimiter can be almost any single-byte character. 
+" delimiter can be almost any single-byte character.
 " Note: We use branches, not a (better performing?) single /[...]/ atom, because
-" of the uncertainties of escaping these characters. 
+" of the uncertainties of escaping these characters.
 function! s:IsCmdDelimiter(char)
   " Note: <Space> must not be included in the set of delimiters; otherwise, the
   " detection of g:cmdaliasCmdPrefixes won't work any more (because the
   " combination of "prefix <Space> alias" is matched as commandUnderCursor).
   " There's no need to include <Space> anyway; since this is our mapped trigger
-  " key, any alias expansion should already have happened earlier. 
+  " key, any alias expansion should already have happened earlier.
   return (len(a:char) == 1 && a:char =~# '\p' && a:char !~# '[ [:alpha:][:digit:]\\"|]')
 endfunction
-let s:cmdDelimiterExpr = '\V\C\%(' . 
+let s:cmdDelimiterExpr = '\V\C\%(' .
 \ join(
 \   filter(
 \     map(
@@ -154,7 +154,7 @@ let s:cmdDelimiterExpr = '\V\C\%(' .
 function! s:ExpandAlias()
   let partCmd = strpart(getcmdline(), 0, getcmdpos() - 1)
 
-  " First just grab the command before the cursor. 
+  " First just grab the command before the cursor.
   let commandMatch = matchlist(partCmd, '\(\h\w*\)\(!\?\)\(' . s:cmdDelimiterExpr . '.*\|\)$')
   if commandMatch == []
     return ' '
@@ -162,13 +162,13 @@ function! s:ExpandAlias()
   let [commandUnderCursor, aliasUnderCursor, commandBang, commandArgs] = commandMatch[0:3]
 
   " And test whether it is a command, or just appears somewhere else, e.g. as
-  " part of an argument. 
+  " part of an argument.
   if partCmd !~# '\%(^\|\\\@<!|\)\s*\%('.s:cmdPrefixesExpr.'\)\?'.s:rangeExpr.'\s*' .
   \ '\V'.escape(commandUnderCursor, '\').'\$'
     return ' '
   endif
 
-  " Then test whether it is aliased. 
+  " Then test whether it is aliased.
   let alias = ''
   if exists('b:aliases')
     let [alias, expansion] = s:GetAlias(b:aliases, aliasUnderCursor)
@@ -187,14 +187,14 @@ endfunction
 " We only expand on <Space>, not on all non-alphanumeric characters that can
 " delimit a command, because all the necessary :cmaps may interfere with other
 " plugins' mappings. Instead, an argument that directly follows the command is
-" handled inside s:ExpandAlias(). 
+" handled inside s:ExpandAlias().
 " Note: If :cnoremap is used, the mapping doesn't trigger expansion of :cabbrev
-" any more. 
+" any more.
 cmap <expr> <Space> getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias() : ' '
 
 
 function! s:OnCmdlineExit( exitKey )
-  " Remove temporary hooks. 
+  " Remove temporary hooks.
   cunmap <CR>
   cunmap <Esc>
   cunmap <C-c>
@@ -204,9 +204,9 @@ endfunction
 
 cnoremap <expr> <SID>CR <SID>OnCmdlineExit("\<lt>CR>")
 function! s:InstallCommandLineHook()
-  " Despite :cmap, a remapped <CR> doesn't trigger expansion of :cabbrev any more. 
+  " Despite :cmap, a remapped <CR> doesn't trigger expansion of :cabbrev any more.
   " A <Space><BS> combo will do this for us, and also expand our aliases (via the
-  " :cmap <Space> defined by this plugin). 
+  " :cmap <Space> defined by this plugin).
   "
   " Unfortunately, any :cmap'ped <CR> will also suppress the automatic opening
   " of the folds of a search result when doing a search via / and ?. (This is
@@ -214,16 +214,19 @@ function! s:InstallCommandLineHook()
   " whenever such a command is executed not directly by the user.) The only way
   " to work around this is to define the <CR> hook only temporarily whenever a
   " command-line of type "Ex command" is opened, so that there is no <CR> :cmap
-  " in all other types of command-line mode. 
+  " in all other types of command-line mode.
 
   " Expand Vim abbreviations and our own aliases also when submitting the
-  " entered command-line. 
+  " entered command-line.
   " Avoid recursive <CR> mapping via intermediate :cnoremap <CR> mapping, and
-  " remove the hooks inside that final mapping. 
-  cmap <CR> <Space><BS><SID>CR
+  " remove the hooks inside that final mapping.
+  " To avoid incorrect expansion when submitting the command-line from the
+  " middle of a word (when the text left of the cursor matches an alias name),
+  " first go to the end of the current WORD via <S-Right>.
+  cmap <CR> <S-Right><Space><BS><SID>CR
 
-  " Remove hooks when command-line mode is aborted, too. 
-  " Note: Must always use <C-c> to exit, <Esc> somehow doesn't work. 
+  " Remove hooks when command-line mode is aborted, too.
+  " Note: Must always use <C-c> to exit, <Esc> somehow doesn't work.
   cnoremap <expr> <Esc> <SID>OnCmdlineExit("\<lt>C-c>")
   cnoremap <expr> <C-c> <SID>OnCmdlineExit("\<lt>C-c>")
 
