@@ -151,13 +151,21 @@ let s:cmdDelimiterExpr = '\V\C\%(' .
 \   ),
 \   '\|'
 \ ). '\)\m'
-function! s:ExpandAlias()
-  let partCmd = strpart(getcmdline(), 0, getcmdpos() - 1)
+function! s:ExpandAlias( triggerKey )
+  if a:triggerKey ==# "\<CR>"
+    " To avoid incorrect expansion when submitting the command-line from the
+    " middle of a word (when the text left of the cursor matches an alias name),
+    " also extract the current word beyond the cursor position.
+    let partCmd = matchstr(getcmdline(), '^.*\%' . getcmdpos() . 'c\w*')
+    echomsg '****' string(partCmd)
+  else
+    let partCmd = strpart(getcmdline(), 0, getcmdpos() - 1)
+  endif
 
   " First just grab the command before the cursor.
   let commandMatch = matchlist(partCmd, '\(\h\w*\)\(!\?\)\(' . s:cmdDelimiterExpr . '.*\|\)$')
   if commandMatch == []
-    return ' '
+    return a:triggerKey
   endif
   let [commandUnderCursor, aliasUnderCursor, commandBang, commandArgs] = commandMatch[0:3]
 
@@ -165,7 +173,7 @@ function! s:ExpandAlias()
   " part of an argument.
   if partCmd !~# '\%(^\|\\\@<!|\)\s*\%('.s:cmdPrefixesExpr.'\)\?'.s:rangeExpr.'\s*' .
   \ '\V'.escape(commandUnderCursor, '\').'\$'
-    return ' '
+    return a:triggerKey
   endif
 
   " Then test whether it is aliased.
@@ -177,12 +185,12 @@ function! s:ExpandAlias()
     let [alias, expansion] = s:GetAlias(s:aliases, aliasUnderCursor)
   endif
   if empty(alias)
-    return ' '
+    return a:triggerKey
   endif
 
   return repeat("\<BS>",
   \ len(split(commandUnderCursor, '\zs'))
-  \) . expansion . commandBang . commandArgs . ' '
+  \) . expansion . commandBang . commandArgs . a:triggerKey
 endfunction
 " We only expand on <Space>, not on all non-alphanumeric characters that can
 " delimit a command, because all the necessary :cmaps may interfere with other
@@ -190,7 +198,7 @@ endfunction
 " handled inside s:ExpandAlias().
 " Note: If :cnoremap is used, the mapping doesn't trigger expansion of :cabbrev
 " any more.
-cmap <expr> <Space> getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias() : ' '
+cmap <expr> <Space> (getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias(' ') : ' ')
 
 
 function! s:OnCmdlineExit( exitKey )
@@ -202,7 +210,14 @@ function! s:OnCmdlineExit( exitKey )
   return a:exitKey
 endfunction
 
-cnoremap <expr> <SID>CR <SID>OnCmdlineExit("\<lt>CR>")
+function! s:OnCR()
+  " We will exit the cmdline.
+  call s:OnCmdlineExit("\<CR>")
+
+  return (getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias("\<CR>") : "\<CR>")
+endfunction
+cnoremap <expr> <SID>CR <SID>OnCR()
+
 function! s:InstallCommandLineHook()
   " Despite :cmap, a remapped <CR> doesn't trigger expansion of :cabbrev any more.
   " A <Space><BS> combo will do this for us, and also expand our aliases (via the
@@ -220,10 +235,7 @@ function! s:InstallCommandLineHook()
   " entered command-line.
   " Avoid recursive <CR> mapping via intermediate :cnoremap <CR> mapping, and
   " remove the hooks inside that final mapping.
-  " To avoid incorrect expansion when submitting the command-line from the
-  " middle of a word (when the text left of the cursor matches an alias name),
-  " first go to the end of the current WORD via <S-Right>.
-  cmap <CR> <S-Right><Space><BS><SID>CR
+  cmap <CR> <SID>CR
 
   " Remove hooks when command-line mode is aborted, too.
   " Note: Must always use <C-c> to exit, <Esc> somehow doesn't work.
@@ -288,4 +300,4 @@ endfunction
 let &cpo = s:save_cpo
 unlet s:save_cpo
 
-" vim6:fdm=marker sw=2
+" vim6:fdm=syntax sw=2
