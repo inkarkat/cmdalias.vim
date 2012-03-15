@@ -152,15 +152,7 @@ let s:cmdDelimiterExpr = '\V\C\%(' .
 \   '\|'
 \ ). '\)\m'
 function! s:ExpandAlias( triggerKey )
-  if a:triggerKey ==# "\<CR>"
-    " To avoid incorrect expansion when submitting the command-line from the
-    " middle of a word (when the text left of the cursor matches an alias name),
-    " also extract the current word beyond the cursor position.
-    let partCmd = matchstr(getcmdline(), '^.*\%' . getcmdpos() . 'c\w*')
-    echomsg '****' string(partCmd)
-  else
-    let partCmd = strpart(getcmdline(), 0, getcmdpos() - 1)
-  endif
+  let partCmd = strpart(getcmdline(), 0, getcmdpos() - 1)
 
   " First just grab the command before the cursor.
   let commandMatch = matchlist(partCmd, '\(\h\w*\)\(!\?\)\(' . s:cmdDelimiterExpr . '.*\|\)$')
@@ -199,7 +191,12 @@ endfunction
 " Note: If :cnoremap is used, the mapping doesn't trigger expansion of :cabbrev
 " any more.
 cmap <expr> <Space> (getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias(' ') : ' ')
+cnoremap <expr> <SID>ExpandOnCR (getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias('') : '')
 
+function! s:OnCR()
+  return "\<Left>\<S-Right>"
+endfunction
+cnoremap <expr> <SID>OnCR <SID>OnCR()
 
 function! s:OnCmdlineExit( exitKey )
   " Remove temporary hooks.
@@ -209,14 +206,7 @@ function! s:OnCmdlineExit( exitKey )
 
   return a:exitKey
 endfunction
-
-function! s:OnCR()
-  " We will exit the cmdline.
-  call s:OnCmdlineExit("\<CR>")
-
-  return (getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias("\<CR>") : "\<CR>")
-endfunction
-cnoremap <expr> <SID>CR <SID>OnCR()
+cnoremap <expr> <SID>EndCR <SID>OnCmdlineExit("\<lt>CR>")
 
 function! s:InstallCommandLineHook()
   " Despite :cmap, a remapped <CR> doesn't trigger expansion of :cabbrev any more.
@@ -235,7 +225,10 @@ function! s:InstallCommandLineHook()
   " entered command-line.
   " Avoid recursive <CR> mapping via intermediate :cnoremap <CR> mapping, and
   " remove the hooks inside that final mapping.
-  cmap <CR> <SID>CR
+  " To avoid incorrect expansion when submitting the command-line from the
+  " middle of a word (when the text left of the cursor matches an alias name),
+  " first go to the end of the current WORD via <S-Right>.
+  cmap <CR> <SID>OnCR<SID>ExpandOnCR<SID>EndCR
 
   " Remove hooks when command-line mode is aborted, too.
   " Note: Must always use <C-c> to exit, <Esc> somehow doesn't work.
