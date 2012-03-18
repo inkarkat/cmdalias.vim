@@ -3,7 +3,7 @@
 " Contributors: Ingo Karkat (swdev at ingo-karkat dot de)
 "               - Replace :cabbr with separate alias implementation.
 "               - Support more cmd prefixes.
-" Last Change: 21-Feb-2012
+" Last Change: 16-Mar-2012
 " Created:     07-Jul-2003
 " Requires: Vim-7.0 or higher
 " Version: 4.1.0
@@ -190,11 +190,20 @@ endfunction
 " handled inside s:ExpandAlias().
 " Note: If :cnoremap is used, the mapping doesn't trigger expansion of :cabbrev
 " any more.
-cmap <expr> <Space> (getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias(' ') : ' ')
+cmap     <expr> <Space>         (getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias(' ') : ' ')
 cnoremap <expr> <SID>ExpandOnCR (getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias('') : '')
 
 function! s:OnCR()
-  return "\<Left>\<S-Right>"
+  if strpart(getcmdline(), getcmdpos() - 1) =~# '^\S'
+    " To avoid incorrect expansion when submitting the command-line from the
+    " middle of a word (when the text left of the cursor matches an alias name),
+    " first go to the end of the current WORD via <S-Right>.
+    " We cannot do this unconditionally, because at the end of a WORD, <S-Right>
+    " would jump to the end of the _next_ WORD.
+    return "\<S-Right>"
+  else
+    return ''
+  endif
 endfunction
 cnoremap <expr> <SID>OnCR <SID>OnCR()
 
@@ -224,10 +233,7 @@ function! s:InstallCommandLineHook()
   " Expand Vim abbreviations and our own aliases also when submitting the
   " entered command-line.
   " Avoid recursive <CR> mapping via intermediate :cnoremap <CR> mapping, and
-  " remove the hooks inside that final mapping.
-  " To avoid incorrect expansion when submitting the command-line from the
-  " middle of a word (when the text left of the cursor matches an alias name),
-  " first go to the end of the current WORD via <S-Right>.
+  " remove the hooks inside the <SID>EndCR mapping.
   cmap <CR> <SID>OnCR<SID>ExpandOnCR<SID>EndCR
 
   " Remove hooks when command-line mode is aborted, too.
