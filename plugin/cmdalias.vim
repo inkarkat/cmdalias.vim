@@ -215,7 +215,7 @@ function! s:OnCmdlineExit( exitKey )
 
   return a:exitKey
 endfunction
-cnoremap <expr> <SID>EndCR <SID>OnCmdlineExit("\<lt>CR>")
+cnoremap <expr> <SID>EndCR <SID>OnCmdlineExit('')
 
 function! s:InstallCommandLineHook()
   " Despite :cmap, a remapped <CR> doesn't trigger expansion of :cabbrev any more.
@@ -232,9 +232,14 @@ function! s:InstallCommandLineHook()
 
   " Expand Vim abbreviations and our own aliases also when submitting the
   " entered command-line.
-  " Avoid recursive <CR> mapping via intermediate :cnoremap <CR> mapping, and
-  " remove the hooks inside the <SID>EndCR mapping.
-  cmap <CR> <SID>OnCR<SID>ExpandOnCR<SID>EndCR
+  "   <SID>OnCR adapts the cursor position so that the expansion will still work
+  "   when the command-line is submitted from the middle of a word.
+  "   <SID>ExpandOnCR triggers the expansion.
+  "   <SID>EndCR removes the hooks being installed here. It does not send the
+  "   <CR>, because that prevents expansion of abbreviations. Instead,
+  "   <CR> submits the command-line. This is not a recursive mapping any more,
+  "   because the previous <SID>EndCR removed the mapping.
+  cmap <CR> <SID>OnCR<SID>ExpandOnCR<SID>EndCR<CR>
 
   " Remove hooks when command-line mode is aborted, too.
   " Note: Must always use <C-c> to exit, <Esc> somehow doesn't work.
