@@ -3,7 +3,7 @@
 " Contributors: Ingo Karkat (swdev at ingo-karkat dot de)
 "               - Replace :cabbr with separate alias implementation.
 "               - Support more cmd prefixes.
-" Last Change: 16-Mar-2012
+" Last Change: 03-May-2012
 " Created:     07-Jul-2003
 " Requires: Vim-7.0 or higher
 " Version: 4.1.0
@@ -249,6 +249,8 @@ function! s:InstallCommandLineHook()
   return ':'
 endfunction
 nnoremap <expr> : <SID>InstallCommandLineHook()
+xnoremap <expr> : <SID>InstallCommandLineHook()
+onoremap <expr> : <SID>InstallCommandLineHook()
 
 
 function! UnAlias(...)
