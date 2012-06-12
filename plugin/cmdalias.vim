@@ -209,9 +209,9 @@ cnoremap <expr> <SID>OnCR <SID>OnCR()
 
 function! s:OnCmdlineExit( exitKey )
   " Remove temporary hooks.
-  cunmap <CR>
-  cunmap <Esc>
-  cunmap <C-c>
+  cunmap <special> <CR>
+  cunmap <special> <Esc>
+  cunmap <special> <C-c>
 
   return a:exitKey
 endfunction
@@ -239,12 +239,12 @@ function! s:InstallCommandLineHook()
   "   <CR>, because that prevents expansion of abbreviations. Instead,
   "   <CR> submits the command-line. This is not a recursive mapping any more,
   "   because the previous <SID>EndCR removed the mapping.
-  cmap <CR> <SID>OnCR<SID>ExpandOnCR<SID>EndCR<CR>
+  cmap <special> <CR> <SID>OnCR<SID>ExpandOnCR<SID>EndCR<CR>
 
   " Remove hooks when command-line mode is aborted, too.
   " Note: Must always use <C-c> to exit, <Esc> somehow doesn't work.
-  cnoremap <expr> <Esc> <SID>OnCmdlineExit("\<lt>C-c>")
-  cnoremap <expr> <C-c> <SID>OnCmdlineExit("\<lt>C-c>")
+  cnoremap <special> <expr> <Esc> <SID>OnCmdlineExit("\<lt>C-c>")
+  cnoremap <special> <expr> <C-c> <SID>OnCmdlineExit("\<lt>C-c>")
 
   return ':'
 endfunction
