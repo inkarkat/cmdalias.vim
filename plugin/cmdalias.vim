@@ -3,7 +3,7 @@
 " Contributors: Ingo Karkat (swdev at ingo-karkat dot de)
 "               - Replace :cabbr with separate alias implementation.
 "               - Support more cmd prefixes.
-" Last Change: 03-May-2012
+" Last Change: 13-Jun-2012
 " Created:     07-Jul-2003
 " Requires: Vim-7.0 or higher
 " Version: 4.1.0
@@ -154,35 +154,39 @@ let s:cmdDelimiterExpr = '\V\C\%(' .
 function! s:ExpandAlias( triggerKey )
   let partCmd = strpart(getcmdline(), 0, getcmdpos() - 1)
 
-  " First just grab the command before the cursor.
-  let commandMatch = matchlist(partCmd, '\(\h\w*\)\(!\?\)\(' . s:cmdDelimiterExpr . '.*\|\)$')
+  " Grab the stuff before the cursor. and test whether it is a command, or just
+  " appears somewhere else, e.g. as part of an argument.
+  let commandMatch = matchlist(partCmd,
+  \ '\%(^\|\\\@<!|\)\s*'.
+  \ '\%('.s:cmdPrefixesExpr.'\)\?'.
+  \ s:rangeExpr.'\s*'.
+  \ '\(\h\w*\)\(!\?\)\('.s:cmdDelimiterExpr.'.*\|\)$'
+  \ )
   if commandMatch == []
     return a:triggerKey
   endif
-  let [commandUnderCursor, aliasUnderCursor, commandBang, commandArgs] = commandMatch[0:3]
+  let [fullCommandUnderCursor, commandName, commandBang, commandArgs] = commandMatch[0:3]
 
-  " And test whether it is a command, or just appears somewhere else, e.g. as
-  " part of an argument.
-  if partCmd !~# '\%(^\|\\\@<!|\)\s*\%('.s:cmdPrefixesExpr.'\)\?'.s:rangeExpr.'\s*' .
-  \ '\V'.escape(commandUnderCursor, '\').'\$'
-    return a:triggerKey
-  endif
 
-  " Then test whether it is aliased.
+  " Then test whether the extracted command name is aliased.
   let alias = ''
   if exists('b:aliases')
-    let [alias, expansion] = s:GetAlias(b:aliases, aliasUnderCursor)
+    let [alias, expansion] = s:GetAlias(b:aliases, commandName)
   endif
   if empty(alias)
-    let [alias, expansion] = s:GetAlias(s:aliases, aliasUnderCursor)
+    let [alias, expansion] = s:GetAlias(s:aliases, commandName)
   endif
   if empty(alias)
     return a:triggerKey
   endif
 
-  return repeat("\<BS>",
-  \ len(split(commandUnderCursor, '\zs'))
-  \) . expansion . commandBang . commandArgs . a:triggerKey
+  " The command name and bang are ASCII-only, but the arguments can contain
+  " multi-byte characters, so we cannot simply use the byte length, but have to
+  " count the characters.
+  let replacedCharactersCnt = len(commandName) + len(commandBang) +
+  \ len(split(commandArgs, '\zs'))
+  return repeat("\<BS>", replacedCharactersCnt).
+  \ expansion . commandBang . commandArgs . a:triggerKey
 endfunction
 " We only expand on <Space>, not on all non-alphanumeric characters that can
 " delimit a command, because all the necessary :cmaps may interfere with other
