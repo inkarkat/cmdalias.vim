@@ -71,19 +71,6 @@ let loaded_cmdalias = 300
 let s:save_cpo = &cpo
 set cpo&vim
 
-if !exists('g:cmdaliasCmdPrefixes')
-  let g:cmdaliasCmdPrefixes = 'verb\%[ose] debug sil\%[ent] redi\%[r] vert\%[ical] lefta\%[bove] abo\%[veleft] rightb\%[elow] bel\%[owright] to\%[pleft] bo\%[tright] argdo bufdo tab tabd\%[o] windo'
-endif
-let s:cmdPrefixesExpr = '\%('.
-\ join(
-\   map(
-\     split(g:cmdaliasCmdPrefixes),
-\     'v:val.''!\?\s\+'''
-\   ),
-\   '\|'
-\ ).
-\ '\)\+'
-
 command! -nargs=+ Alias :call CmdAlias(<f-args>)
 command! -nargs=* UnAlias :call UnAlias(<f-args>)
 command! -nargs=* Aliases :call <SID>Aliases(<f-args>)
@@ -125,8 +112,6 @@ function! s:GetAlias(aliases, testValue)
   return (aliasIdx == -1 ? ['', ''] : [aliasNames[aliasIdx], a:aliases[aliasNames[aliasIdx]]])
 endfunction
 
-let s:singleRangeExpr = '\%(\d*\|[.$%]\|''\S\|\\[/?&]\|/.\{-}/\|?.\{-}?\)\%([+-]\d*\)\?'
-let s:rangeExpr = s:singleRangeExpr.'\%([,;]'.s:singleRangeExpr.'\)\?'
 " Commands are usually <Space>-delimited, but can also be directly followed by
 " an argument (like :substitute, :ijump, etc.). According to :help E146, the
 " delimiter can be almost any single-byte character.
@@ -134,8 +119,9 @@ let s:rangeExpr = s:singleRangeExpr.'\%([,;]'.s:singleRangeExpr.'\)\?'
 " of the uncertainties of escaping these characters.
 function! s:IsCmdDelimiter(char)
   " Note: <Space> must not be included in the set of delimiters; otherwise, the
-  " detection of g:cmdaliasCmdPrefixes won't work any more (because the
-  " combination of "prefix <Space> alias" is matched as commandUnderCursor).
+  " detection of commands that take other commands
+  " (ingoexcommands#GetCommandCommandsExpr()) won't work any more (because the
+  " combination of "command<Space>alias" is matched as commandUnderCursor).
   " There's no need to include <Space> anyway; since this is our mapped trigger
   " key, any alias expansion should already have happened earlier.
   return (len(a:char) == 1 && a:char =~# '\p' && a:char !~# '[ [:alpha:][:digit:]\\"|]')
@@ -158,8 +144,8 @@ function! s:ExpandAlias( triggerKey )
   " appears somewhere else, e.g. as part of an argument.
   let commandMatch = matchlist(partCmd,
   \ '\%(^\|\\\@<!|\)\s*'.
-  \ '\%('.s:cmdPrefixesExpr.'\)\?'.
-  \ s:rangeExpr.'\s*'.
+  \ '\%('.ingoexcommands#GetCommandCommandsExpr().'\)\?'.
+  \ ingoexcommands#RangeExpr().'\s*'.
   \ '\(\h\w*\)\(!\?\)\('.s:cmdDelimiterExpr.'.*\|\)$'
   \ )
   if commandMatch == []
