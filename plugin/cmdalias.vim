@@ -3,9 +3,10 @@
 " Contributors: Ingo Karkat (swdev at ingo-karkat dot de)
 "               - Replace :cabbr with separate alias implementation.
 "               - Support more cmd prefixes.
-" Last Change: 13-Jun-2012
+" Last Change: 15-Jun-2012
 " Created:     07-Jul-2003
 " Requires: Vim-7.0 or higher
+"           - ingoexcommands.vim autoload script
 " Version: 4.1.0
 " Licence: This program is free software; you can redistribute it and/or
 "          modify it under the terms of the GNU General Public License.
@@ -112,46 +113,16 @@ function! s:GetAlias(aliases, testValue)
   return (aliasIdx == -1 ? ['', ''] : [aliasNames[aliasIdx], a:aliases[aliasNames[aliasIdx]]])
 endfunction
 
-" Commands are usually <Space>-delimited, but can also be directly followed by
-" an argument (like :substitute, :ijump, etc.). According to :help E146, the
-" delimiter can be almost any single-byte character.
-" Note: We use branches, not a (better performing?) single /[...]/ atom, because
-" of the uncertainties of escaping these characters.
-function! s:IsCmdDelimiter(char)
-  " Note: <Space> must not be included in the set of delimiters; otherwise, the
-  " detection of commands that take other commands
-  " (ingoexcommands#GetCommandCommandsExpr()) won't work any more (because the
-  " combination of "command<Space>alias" is matched as commandUnderCursor).
-  " There's no need to include <Space> anyway; since this is our mapped trigger
-  " key, any alias expansion should already have happened earlier.
-  return (len(a:char) == 1 && a:char =~# '\p' && a:char !~# '[ [:alpha:][:digit:]\\"|]')
-endfunction
-let s:cmdDelimiterExpr = '\V\C\%(' .
-\ join(
-\   filter(
-\     map(
-\       range(0, 255),
-\       'nr2char(v:val)'
-\     ),
-\     's:IsCmdDelimiter(v:val)'
-\   ),
-\   '\|'
-\ ). '\)\m'
 function! s:ExpandAlias( triggerKey )
   let partCmd = strpart(getcmdline(), 0, getcmdpos() - 1)
 
   " Grab the stuff before the cursor. and test whether it is a command, or just
   " appears somewhere else, e.g. as part of an argument.
-  let commandMatch = matchlist(partCmd,
-  \ '\%(^\|\\\@<!|\)\s*'.
-  \ '\%('.ingoexcommands#GetCommandCommandsExpr().'\)\?'.
-  \ ingoexcommands#RangeExpr().'\s*'.
-  \ '\(\h\w*\)\(!\?\)\('.s:cmdDelimiterExpr.'.*\|\)$'
-  \ )
-  if commandMatch == []
+  let commandParse = ingoexcommands#ParseCommand(partCmd)
+  if commandParse == []
     return a:triggerKey
   endif
-  let [fullCommandUnderCursor, commandName, commandBang, commandArgs] = commandMatch[0:3]
+  let [fullCommandUnderCursor, range, commandName, commandBang, commandArgs] = commandParse
 
 
   " Then test whether the extracted command name is aliased.
