@@ -122,7 +122,7 @@ function! s:ExpandAlias( triggerKey )
   if commandParse == []
     return a:triggerKey
   endif
-  let [fullCommandUnderCursor, range, commandName, commandBang, commandArgs] = commandParse
+  let [fullCommandUnderCursor, combiner, range, commandCommands, commandName, commandBang, commandDirectArgs, commandArgs] = commandParse
 
 
   " Then test whether the extracted command name is aliased.
