@@ -3,7 +3,7 @@
 " Contributors: Ingo Karkat (swdev at ingo-karkat dot de)
 "               - Replace :cabbr with separate alias implementation.
 "               - Support more cmd prefixes.
-" Last Change: 15-Jun-2012
+" Last Change: 05-Jul-2012
 " Created:     07-Jul-2003
 " Requires: Vim-7.0 or higher
 "           - ingoexcommands.vim autoload script
@@ -141,9 +141,9 @@ function! s:ExpandAlias( triggerKey )
   " multi-byte characters, so we cannot simply use the byte length, but have to
   " count the characters.
   let replacedCharactersCnt = len(commandName) + len(commandBang) +
-  \ len(split(commandArgs, '\zs'))
+  \ len(split(commandArgs, '\zs')) + len(split(commandDirectArgs, '\zs'))
   return repeat("\<BS>", replacedCharactersCnt).
-  \ expansion . commandBang . commandArgs . a:triggerKey
+  \ expansion . commandBang . commandDirectArgs . commandArgs . a:triggerKey
 endfunction
 " We only expand on <Space>, not on all non-alphanumeric characters that can
 " delimit a command, because all the necessary :cmaps may interfere with other
