@@ -170,7 +170,11 @@ cnoremap <expr> <SID>OnCR <SID>OnCR()
 
 function! s:OnCmdlineExit( exitKey )
   " Remove temporary hooks.
-  cunmap <special> <CR>
+  if empty(s:save_cmapCR)
+    cunmap <special> <CR>
+  else
+    execute 'cmap <special> <CR>' s:save_cmapCR
+  endif
   cunmap <special> <Esc>
   cunmap <special> <C-c>
 
@@ -179,6 +183,12 @@ endfunction
 cnoremap <expr> <SID>EndCR <SID>OnCmdlineExit('')
 
 function! s:InstallCommandLineHook()
+  if ! exists('s:save_cmapCR')
+    " There may be mapping contention around <CR>; let's try to save and restore
+    " the original mapping; should work when the mapping is well-behaved.
+    let s:save_cmapCR = maparg('<CR>', 'c')
+  endif
+
   " Despite :cmap, a remapped <CR> doesn't trigger expansion of :cabbrev any more.
   " A <Space><BS> combo will do this for us, and also expand our aliases (via the
   " :cmap <Space> defined by this plugin).
