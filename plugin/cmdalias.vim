@@ -3,7 +3,7 @@
 " Contributors: Ingo Karkat (swdev at ingo-karkat dot de)
 "               - Replace :cabbr with separate alias implementation.
 "               - Support more cmd prefixes.
-" Last Change: 05-Jul-2012
+" Last Change: 17-Nov-2012
 " Created:     07-Jul-2003
 " Requires: Vim-7.0 or higher
 "           - ingoexcommands.vim autoload script
@@ -173,7 +173,9 @@ function! s:OnCmdlineExit( exitKey )
   if empty(s:save_cmapCR)
     cunmap <special> <CR>
   else
-    execute 'cmap <special> <CR>' s:save_cmapCR
+    " Note: Must escape whitespace to avoid that it's eaten away by the
+    " Vimscript parser.
+    execute 'cmap <special> <CR>' substitute(s:save_cmapCR, '\s', '\=submatch(0) ==# " " ? "<Space>" : "<Tab>"', 'g')
   endif
   cunmap <special> <Esc>
   cunmap <special> <C-c>
