@@ -3,7 +3,7 @@
 " Contributors: Ingo Karkat (swdev at ingo-karkat dot de)
 "               - Replace :cabbr with separate alias implementation.
 "               - Support more cmd prefixes.
-" Last Change: 17-Nov-2012
+" Last Change: 20-Feb-2013
 " Created:     07-Jul-2003
 " Requires: Vim-7.0 or higher
 "           - ingoexcommands.vim autoload script
@@ -153,6 +153,7 @@ endfunction
 " any more.
 cmap     <expr> <Space>         (getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias(' ') : ' ')
 cnoremap <expr> <SID>ExpandOnCR (getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias('') : '')
+cnoremap <expr> <Plug>(cmdaliasExpand) (getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias('') : '')
 
 function! s:OnCR()
   if strpart(getcmdline(), getcmdpos() - 1) =~# '^\S'
