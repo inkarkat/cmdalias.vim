@@ -3,7 +3,7 @@
 " Contributors: Ingo Karkat (swdev at ingo-karkat dot de)
 "               - Replace :cabbr with separate alias implementation.
 "               - Support more cmd prefixes.
-" Last Change: 20-Feb-2013
+" Last Change: 05-Mar-2013
 " Created:     07-Jul-2003
 " Requires: Vim-7.0 or higher
 "           - ingoexcommands.vim autoload script
@@ -145,13 +145,14 @@ function! s:ExpandAlias( triggerKey )
   return repeat("\<BS>", replacedCharactersCnt).
   \ expansion . commandBang . commandDirectArgs . commandArgs . a:triggerKey
 endfunction
-" We only expand on <Space>, not on all non-alphanumeric characters that can
-" delimit a command, because all the necessary :cmaps may interfere with other
-" plugins' mappings. Instead, an argument that directly follows the command is
-" handled inside s:ExpandAlias().
+" We only expand on <Space> and <Bar>, not on all non-alphanumeric characters
+" that can delimit a command, because all the necessary :cmaps may interfere
+" with other plugins' mappings. Instead, an argument that directly follows the
+" command is handled inside s:ExpandAlias().
 " Note: If :cnoremap is used, the mapping doesn't trigger expansion of :cabbrev
 " any more.
 cmap     <expr> <Space>         (getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias(' ') : ' ')
+cmap     <expr> <Bar>           (getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias('<Bar>') : '<Bar>')
 cnoremap <expr> <SID>ExpandOnCR (getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias('') : '')
 cnoremap <expr> <Plug>(cmdaliasExpand) (getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias('') : '')
 
