@@ -3,10 +3,10 @@
 " Contributors: Ingo Karkat (swdev at ingo-karkat dot de)
 "               - Replace :cabbr with separate alias implementation.
 "               - Support more cmd prefixes.
-" Last Change: 05-Mar-2013
+" Last Change: 08-Jul-2013
 " Created:     07-Jul-2003
 " Requires: Vim-7.0 or higher
-"           - ingoexcommands.vim autoload script
+"	    - ingo/cmdargs/command.vim autoload script
 " Version: 4.1.0
 " Licence: This program is free software; you can redistribute it and/or
 "          modify it under the terms of the GNU General Public License.
@@ -118,7 +118,7 @@ function! s:ExpandAlias( triggerKey )
 
   " Grab the stuff before the cursor. and test whether it is a command, or just
   " appears somewhere else, e.g. as part of an argument.
-  let commandParse = ingoexcommands#ParseCommand(partCmd)
+  let commandParse = ingo#cmdargs#command#Parse(partCmd)
   if commandParse == []
     return a:triggerKey
   endif
