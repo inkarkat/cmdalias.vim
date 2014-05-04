@@ -3,7 +3,7 @@
 " Contributors: Ingo Karkat (swdev at ingo-karkat dot de)
 "               - Replace :cabbr with separate alias implementation.
 "               - Support more cmd prefixes.
-" Last Change: 08-Jul-2013
+" Last Change: 17-Apr-2014
 " Created:     07-Jul-2003
 " Requires: Vim-7.0 or higher
 "	    - ingo/cmdargs/command.vim autoload script
@@ -257,7 +257,10 @@ function! s:FilterAliases(aliases, listPrefix, ...)
   if a:0 == 0
     let goodAliases = sort(keys(a:aliases))
   else
-    let goodAliases = filter(copy(a:000), 'has_key(a:aliases, v:val) != 0')
+    let goodAliases = []
+    for findArg in a:000
+      let goodAliases += filter(keys(a:aliases), 'v:val ==# findArg || v:val =~# "\\V\\^" . findArg')
+    endfor
   endif
   if len(goodAliases) == 0
     return []
