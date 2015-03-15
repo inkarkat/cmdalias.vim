@@ -154,7 +154,7 @@ function! s:ExpandAlias( triggerKey )
   if empty(alias)
     let [alias, expansion] = s:GetAlias(s:aliases, commandName)
   endif
-  if empty(alias)
+  if empty(alias) || expansion ==# alias
     return a:triggerKey
   endif
 
