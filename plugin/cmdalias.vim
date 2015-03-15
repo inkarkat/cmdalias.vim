@@ -49,7 +49,8 @@
 "     ranges, command bang and certain prefix commands.
 "   - The plugin provides commands to define, list and undefine command-line
 "     aliases. You can pass an optional flag "<buffer>" to make the alias local
-"     to the current buffer.
+"     to the current buffer, and "<expr>" to evaluate the <rhs> as an expression
+"     (like |:map-expression|).
 " Drawbacks:
 "   - If the <rhs> is not of the same size as <lhs>, the in-place expansion
 "     feels odd.
@@ -98,7 +99,13 @@ function! CmdAlias(lhs, ...)
     return 0
   endif
   let alias = {'rhs': rhs}
-  if a:0 > 1 && a:2 ==# "<buffer>"
+
+  let arguments = join(a:000[1:])
+  if arguments =~# '<expr>'
+    let alias.expr = 1
+  endif
+
+  if arguments =~# '<buffer>'
     if ! exists('b:aliases')
       let b:aliases = {}
     endif
@@ -112,7 +119,8 @@ endfunction
 
 function! s:GetAlias(aliases, alias)
   if has_key(a:aliases, a:alias)
-    return [a:alias, a:aliases[a:alias].rhs]
+    let alias = a:aliases[a:alias]
+    return [a:alias, (get(alias, 'expr', 0) ? eval(alias.rhs) : alias.rhs)]
   else
     return ['', '']
   endif
