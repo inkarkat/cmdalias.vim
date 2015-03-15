@@ -14,12 +14,12 @@
 " Download From:
 "     http://www.vim.org/script.php?script_id=745
 " Usage:
-"     :call CmdAlias('<lhs>', '<rhs>', [flags])
+"     :call CmdAlias([flags,] '{lhs}', '{rhs}')
 "     or
-"     :Alias <lhs> <rhs> [flags]
+"     :Alias [flags] {lhs} {rhs}
 "
-"     :UnAlias <lhs> ...
-"     :Aliases [<lhs> ...]
+"     :UnAlias {lhs} ...
+"     :Aliases [{lhs} ...]
 "
 " Ex:
 "     :Alias runtime Runtime
@@ -49,15 +49,15 @@
 "     ranges, command bang and certain prefix commands.
 "   - The plugin provides commands to define, list and undefine command-line
 "     aliases. You can pass an optional flag "<buffer>" to make the alias local
-"     to the current buffer, and "<expr>" to evaluate the <rhs> as an expression
+"     to the current buffer, and "<expr>" to evaluate the {rhs} as an expression
 "     (like |:map-expression|).
 " Drawbacks:
-"   - If the <rhs> is not of the same size as <lhs>, the in-place expansion
+"   - If the {rhs} is not of the same size as {lhs}, the in-place expansion
 "     feels odd.
 "   - Since the expansion is in-place, Vim command-line history saves the
-"     <rhs>, not the <lhs>. This means, you can't retrieve a command from
-"     history by partially typing the <lhs> (you have to instead type the
-"     <rhs> for this purpose).
+"     {rhs}, not the {lhs}. This means, you can't retrieve a command from
+"     history by partially typing the {lhs} (you have to instead type the
+"     {rhs} for this purpose).
 
 if exists("loaded_cmdalias")
   finish
@@ -82,25 +82,33 @@ if ! exists('s:aliases')
 endif
 
 " Define a new command alias.
-function! CmdAlias(lhs, ...)
-  let lhs = a:lhs
+function! CmdAlias(...)
+  let args = copy(a:000)
+  let arguments = ''
+  while len(args) > 0 && args[0] =~# '<\w\+>'
+    let arguments .= remove(args, 0)
+  endwhile
+  if len(args) == 0
+    call ingo#err#Set('No {lhs} specified for alias')
+    return 0
+  endif
+  let lhs = args[0]
   if lhs !~ '^\h\w*$'
-    call ingo#err#Set('Only word characters that do not start with a digit are supported on <lhs>')
+    call ingo#err#Set('Only word characters that do not start with a digit are supported on {lhs}')
     return 0
   endif
-  if a:0 > 0
-    let rhs = a:1
-  else
-    call ingo#err#Set('No <rhs> specified for alias')
+
+  if len(args) <= 1
+    call ingo#err#Set('No {rhs} specified for alias')
     return 0
   endif
+  let rhs = join(args[1:])
   if has_key(s:aliases, rhs) || exists('b:aliases') && has_key(b:aliases, rhs)
-    call ingo#err#Set("Another alias can't be used as <rhs>")
+    call ingo#err#Set("Another alias can't be used as {rhs}")
     return 0
   endif
   let alias = {'rhs': rhs}
 
-  let arguments = join(a:000[1:])
   if arguments =~# '<expr>'
     let alias.expr = 1
   endif
