@@ -72,9 +72,9 @@ let loaded_cmdalias = 300
 let s:save_cpo = &cpo
 set cpo&vim
 
-command! -nargs=+ Alias :call CmdAlias(<f-args>)
-command! -nargs=* UnAlias :call UnAlias(<f-args>)
-command! -nargs=* Aliases :call <SID>Aliases(<f-args>)
+command! -nargs=+ Alias   if ! CmdAlias(<f-args>) | echoerr ingo#err#Get() | endif
+command! -nargs=* UnAlias if ! UnAlias(<f-args>) | echoerr ingo#err#Get() | endif
+command! -nargs=* Aliases if ! <SID>Aliases(<f-args>) | echoerr ingo#err#Get() | endif
 
 if ! exists('s:aliases')
   let s:aliases = {}
@@ -84,18 +84,18 @@ endif
 function! CmdAlias(lhs, ...)
   let lhs = a:lhs
   if lhs !~ '^\h\w*$'
-    echohl ErrorMsg | echo 'Only word characters that do not start with a digit are supported on <lhs>' | echohl NONE
-    return
+    call ingo#err#Set('Only word characters that do not start with a digit are supported on <lhs>')
+    return 0
   endif
   if a:0 > 0
     let rhs = a:1
   else
-    echohl ErrorMsg | echo 'No <rhs> specified for alias' | echohl NONE
-    return
+    call ingo#err#Set('No <rhs> specified for alias')
+    return 0
   endif
   if has_key(s:aliases, rhs) || exists('b:aliases') && has_key(b:aliases, rhs)
-    echohl ErrorMsg | echo "Another alias can't be used as <rhs>" | echohl NONE
-    return
+    call ingo#err#Set("Another alias can't be used as <rhs>")
+    return 0
   endif
   if a:0 > 1 && a:2 ==# "<buffer>"
     if ! exists('b:aliases')
@@ -105,6 +105,8 @@ function! CmdAlias(lhs, ...)
   else
     let s:aliases[lhs] = rhs
   endif
+
+  return 1
 endfunction
 
 function! s:GetAlias(aliases, testValue)
@@ -230,8 +232,8 @@ onoremap <expr> : <SID>InstallCommandLineHook()
 
 function! UnAlias(...)
   if a:0 == 0
-    echohl ErrorMsg | echo "No aliases specified" | echohl NONE
-    return
+    call ingo#err#Set("No aliases specified")
+    return 0
   endif
 
   let aliasesToRemove = copy(a:000)
@@ -249,8 +251,11 @@ function! UnAlias(...)
   endif
   if len(aliases) != len(aliasesToRemove)
     let badAliases = filter(copy(aliasesToRemove), 'index(aliases, v:val) == -1')
-    echohl ErrorMsg | echo "No such aliases: " . join(badAliases, ' ') | echohl NONE
+    call ingo#err#Set("No such aliases: " . join(badAliases, ' '))
+    return 0
   endif
+
+  return 1
 endfunction
 
 function! s:FilterAliases(aliases, listPrefix, ...)
@@ -277,6 +282,10 @@ function! s:Aliases(...)
 
   if len(goodAliases) > 0
     echo join(goodAliases, "\n")
+    return 1
+  else
+    call ingo#err#Set('No aliases defined')
+    return 0
   endif
 endfunction
 
