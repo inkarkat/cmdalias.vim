@@ -97,22 +97,25 @@ function! CmdAlias(lhs, ...)
     call ingo#err#Set("Another alias can't be used as <rhs>")
     return 0
   endif
+  let alias = {'rhs': rhs}
   if a:0 > 1 && a:2 ==# "<buffer>"
     if ! exists('b:aliases')
       let b:aliases = {}
     endif
-    let b:aliases[lhs] = rhs
+    let b:aliases[lhs] = alias
   else
-    let s:aliases[lhs] = rhs
+    let s:aliases[lhs] = alias
   endif
 
   return 1
 endfunction
 
-function! s:GetAlias(aliases, testValue)
-  let aliasNames = keys(a:aliases)
-  let aliasIdx = index(aliasNames, a:testValue)
-  return (aliasIdx == -1 ? ['', ''] : [aliasNames[aliasIdx], a:aliases[aliasNames[aliasIdx]]])
+function! s:GetAlias(aliases, alias)
+  if has_key(a:aliases, a:alias)
+    return [a:alias, a:aliases[a:alias].rhs]
+  else
+    return ['', '']
+  endif
 endfunction
 
 function! s:ExpandAlias( triggerKey )
@@ -270,7 +273,7 @@ function! s:FilterAliases(aliases, listPrefix, ...)
   if len(goodAliases) == 0
     return []
   else
-    return map(copy(goodAliases), 'printf("%-8s\t%s%s", v:val, a:listPrefix, a:aliases[v:val])')
+    return map(copy(goodAliases), 'printf("%-8s\t%s%s", v:val, a:listPrefix, a:aliases[v:val].rhs)')
   endif
 endfunction
 function! s:Aliases(...)
