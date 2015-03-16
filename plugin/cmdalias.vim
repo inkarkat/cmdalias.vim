@@ -16,7 +16,7 @@
 " Usage:
 "     :call CmdAlias([flags,] '{lhs}', '{rhs}')
 "     or
-"     :Alias [flags] {lhs} {rhs}
+"     :Alias [<buffer>] [<expr>] {lhs} {rhs}
 "
 "     :UnAlias {lhs} ...
 "     :Aliases [{lhs} ...]
@@ -144,6 +144,7 @@ function! s:ExpandAlias( triggerKey )
     return a:triggerKey
   endif
   let [fullCommandUnderCursor, combiner, range, commandCommands, commandName, commandBang, commandDirectArgs, commandArgs] = commandParse
+  let g:cmdalias_Context = {'bang': commandBang, 'directArgs': commandDirectArgs, 'args': commandArgs}
 
 
   " Then test whether the extracted command name is aliased.
@@ -163,8 +164,18 @@ function! s:ExpandAlias( triggerKey )
   " count the characters.
   let replacedCharactersCnt = len(commandName) + len(commandBang) +
   \ len(split(commandArgs, '\zs')) + len(split(commandDirectArgs, '\zs'))
-  return repeat("\<BS>", replacedCharactersCnt).
-  \ expansion . commandBang . commandDirectArgs . commandArgs . a:triggerKey
+
+  " Consider the (possibly changed by a :Alias <expr>) context when reassembling
+  " the replacement.
+  let replacement = expansion . g:cmdalias_Context.bang . g:cmdalias_Context.directArgs . g:cmdalias_Context.args . a:triggerKey
+
+  " To handle expansion keys (<Space> and <Bar>) in the replacement, these must
+  " be inserted literally (as remapping has to be active, see below), or else
+  " we'll land in endless recursion.
+  let keys = repeat("\<BS>", replacedCharactersCnt) . substitute(replacement, '[ |]', "\<Plug>(cmdaliasLiteral)&", 'g')
+
+  unlet g:cmdalias_Context
+  return keys
 endfunction
 " We only expand on <Space> and <Bar>, not on all non-alphanumeric characters
 " that can delimit a command, because all the necessary :cmaps may interfere
@@ -176,6 +187,7 @@ cmap     <expr> <Space>         (getcmdtype() ==# ':' && ! &paste ? <SID>ExpandA
 cmap     <expr> <Bar>           (getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias('<Bar>') : '<Bar>')
 cnoremap <expr> <SID>ExpandOnCR (getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias('') : '')
 cnoremap <expr> <Plug>(cmdaliasExpand) (getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias('') : '')
+cnoremap <Plug>(cmdaliasLiteral) <C-v>
 
 function! s:OnCR()
   if strpart(getcmdline(), getcmdpos() - 1) =~# '^\S'
