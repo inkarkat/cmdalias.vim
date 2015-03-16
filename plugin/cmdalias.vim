@@ -59,17 +59,10 @@
 "     history by partially typing the {lhs} (you have to instead type the
 "     {rhs} for this purpose).
 
-if exists("loaded_cmdalias")
+if exists('g:loaded_cmdalias') || v:version < 700
   finish
 endif
-if v:version < 700
-  echomsg "cmdalias: You need Vim 7.0 or higher"
-  finish
-endif
-let loaded_cmdalias = 300
-
-" Make sure line-continuations won't cause any problem. This will be restored
-"   at the end
+let g:loaded_cmdalias = 1
 let s:save_cpo = &cpo
 set cpo&vim
 
@@ -185,7 +178,7 @@ endfunction
 " any more.
 cmap     <expr> <Space>         (getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias(' ') : ' ')
 cmap     <expr> <Bar>           (getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias('<Bar>') : '<Bar>')
-cnoremap <expr> <SID>ExpandOnCR (getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias('') : '')
+cmap     <expr> <SID>ExpandOnCR (getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias('') : '')
 cnoremap <expr> <Plug>(cmdaliasExpand) (getcmdtype() ==# ':' && ! &paste ? <SID>ExpandAlias('') : '')
 cnoremap <Plug>(cmdaliasLiteral) <C-v>
 
@@ -320,8 +313,6 @@ function! s:Aliases(...)
   endif
 endfunction
 
-" Restore cpo.
 let &cpo = s:save_cpo
 unlet s:save_cpo
-
 " vim6:fdm=syntax sw=2
