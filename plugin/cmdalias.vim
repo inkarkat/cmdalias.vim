@@ -1,63 +1,14 @@
 " cmdalias.vim: Create aliases for Vim commands.
-" Author: Hari Krishna Dara (hari.vim at gmail dot com)
-" Contributors: Ingo Karkat (swdev at ingo-karkat dot de)
-"               - Replace :cabbr with separate alias implementation.
-"               - Support more cmd prefixes.
-" Last Change: 17-Apr-2014
+" Original Author: Hari Krishna Dara (hari.vim at gmail dot com)
+" Maintainer: Ingo Karkat (swdev at ingo-karkat dot de)
+" Last Change: 17-Mar-2015
 " Created:     07-Jul-2003
 " Requires: Vim-7.0 or higher
 "	    - ingo/cmdargs/command.vim autoload script
-" Version: 4.1.0
+" Version: 4.2.0
 " Licence: This program is free software; you can redistribute it and/or
 "          modify it under the terms of the GNU General Public License.
 "          See http://www.gnu.org/copyleft/gpl.txt
-" Download From:
-"     http://www.vim.org/script.php?script_id=745
-" Usage:
-"     :call CmdAlias([flags,] '{lhs}', '{rhs}')
-"     or
-"     :Alias [<buffer>] [<expr>] {lhs} {rhs}
-"
-"     :UnAlias {lhs} ...
-"     :Aliases [{lhs} ...]
-"
-" Ex:
-"     :Alias runtime Runtime
-"     :Alias find Find
-"     :Aliases
-"     :UnAlias find
-"
-" Description:
-"   - Vim doesn't allow us to create user-defined commands unless they start
-"     with an uppercase letter. I find this annoying and constrained when it
-"     comes to overriding built-in commands with my own. To override built-in
-"     commands, we often have to create a new command that has the same name
-"     as the built-in but starting with an uppercase letter (e.g., "Cd"
-"     instead of "cd"), and remember to use that every time (besides the
-"     fact that typing uppercase letters take more effort). An alternative is
-"     to use the :cabbr to create an abbreviation for the built-in command
-"     (:cmap is not good) to the user-defined command (e.g., "cabbr cd Cd").
-"     But this would generally cause more inconvenience because the
-"     abbreviation gets expanded no matter where in the command-line you use
-"     it. Also, abbreviations of type "full-id" must be delimited by whitespace
-"     or non-keyword characters, which prevents expansion if ranges like "42" or
-"     "/foo/" are directly prepended to the alias.
-"     This is where the plugin comes to your rescue by hooking into the
-"     command-line and implementing its own alias expansion. Aliases are only
-"     expanded if they are in command position, i.e. at the beginning of the
-"     command line, or after a "|" command-separator. This takes into account
-"     ranges, command bang and certain prefix commands.
-"   - The plugin provides commands to define, list and undefine command-line
-"     aliases. You can pass an optional flag "<buffer>" to make the alias local
-"     to the current buffer, and "<expr>" to evaluate the {rhs} as an expression
-"     (like |:map-expression|).
-" Drawbacks:
-"   - If the {rhs} is not of the same size as {lhs}, the in-place expansion
-"     feels odd.
-"   - Since the expansion is in-place, Vim command-line history saves the
-"     {rhs}, not the {lhs}. This means, you can't retrieve a command from
-"     history by partially typing the {lhs} (you have to instead type the
-"     {rhs} for this purpose).
 
 if exists('g:loaded_cmdalias') || v:version < 700
   finish
