@@ -1,7 +1,7 @@
 " cmdalias.vim: Create aliases for Vim commands.
 " Original Author: Hari Krishna Dara (hari.vim at gmail dot com)
 " Maintainer: Ingo Karkat (swdev at ingo-karkat dot de)
-" Last Change: 17-Mar-2015
+" Last Change: 15-May-2023
 " Created:     07-Jul-2003
 " Requires: Vim-7.0 or higher
 "	    - ingo/cmdargs/command.vim autoload script
@@ -87,7 +87,7 @@ function! s:ExpandAlias( triggerKey )
   if commandParse == []
     return a:triggerKey
   endif
-  let [fullCommandUnderCursor, combiner, range, commandCommands, commandName, commandBang, commandDirectArgs, commandArgs] = commandParse
+  let [fullCommandUnderCursor, combiner, commandCommands, range, commandName, commandBang, commandDirectArgs, commandArgs] = commandParse
   let g:cmdalias_Context = {'bang': commandBang, 'directArgs': commandDirectArgs, 'args': commandArgs}
 
 
