@@ -1,0 +1,149 @@
+*cmdalias.txt*          Create aliases for Vim commands.
+
+			  CMDALIAS    by Ingo Karkat
+		   (original version by Hari Krishna Dara)
+								*cmdalias.vim*
+description			|cmdalias-description|
+usage				|cmdalias-usage|
+installation			|cmdalias-installation|
+configuration			|cmdalias-configuration|
+integration			|cmdalias-integration|
+limitations			|cmdalias-limitations|
+known problems			|cmdalias-known-problems|
+todo				|cmdalias-todo|
+history				|cmdalias-history|
+
+==============================================================================
+DESCRIPTION						*cmdalias-description*
+
+Vim doesn't allow to create user-defined commands unless they start with an
+uppercase letter. I find this annoying and constrained when it comes to
+overriding built-in commands with my own. To override built-in commands, we
+often have to create a new command that has the same name as the built-in but
+starting with an uppercase letter (e.g., :Cd instead of |:cd|), and remember
+to use that every time (besides the fact that typing uppercase letters take
+more effort). An alternative is to use the |:cabbr| to create an abbreviation
+for the built-in command (|:cmap| is not good) to the user-defined command
+(e.g. ":cabbr cd Cd").
+But this would generally cause more inconvenience because the abbreviation
+gets expanded no matter where in the command-line you use it. Also,
+abbreviations of type "full-id" must be delimited by whitespace or non-keyword
+characters, which prevents expansion if ranges like "42" or "/foo/" are
+directly prepended to the alias.
+This is where the plugin comes to your rescue by hooking into the command-line
+and implementing its own alias expansion. Aliases are only expanded if they
+are in command position, i.e. at the beginning of the command line, or after a
+| (|:bar|) command-separator. This takes into account ranges, |:command-bang|
+and certain prefix commands.
+The plugin provides commands to define, list and undefine command-line
+aliases. You can pass an optional flag <buffer> to make the alias local to the
+current buffer, and <expr> to evaluate the {rhs} as an expression (like
+|:map-expression|).
+
+Drawbacks:
+- If the {rhs} is not of the same size as {lhs}, the in-place expansion feels
+  odd.
+- Since the expansion is in-place, Vim command-line history saves the {rhs},
+  not the {lhs}. This means, you can't retrieve a command from history by
+  partially typing the {lhs} (you have to instead type the {rhs} for this
+  purpose).
+
+HOW IT WORKS								     *
+
+SOURCE									     *
+
+This is a continuation of vimscript #746 by Hari Krishna Dara, who doesn't
+maintain his original version any more. This plugin offers the following
+advantages over the original:
+- Instead of defining individual :cabbr for each alias, it only generically
+  hooks into a few expansion keys. This handles more cases than abbreviations
+  (e.g. when a command is not typed in one go and instead edited in-place).
+- Supports more command prefixes, and allows to extend that list.
+- Support for <expr> right-hand sides that get dynamically expanded.
+
+SEE ALSO								     *
+(Plugins offering complementary functionality, or plugins using this library.)
+
+RELATED WORKS								     *
+(Alternatives from other authors, other approaches, references not used here.)
+
+==============================================================================
+USAGE							      *cmdalias-usage*
+								      *:Alias*
+:Alias [<expr>] [<buffer>] {lhs} {rhs}
+			Add alias for {lhs} to {rhs}. If {lhs} already existed
+			it is replaced with the new {rhs}. {rhs} may contain
+			spaces.
+			See |:map-<expr>| for the optional <expr> argument.
+			See |:map-<buffer>| for the optional <buffer> argument.
+
+:call CmdAlias([flags,] '{lhs}', '{rhs}')
+			Alternative API.
+
+								    *:UnAlias*
+:UnAlias {lhs} [...]	Remove alias for {lhs}.
+								    *:Aliases*
+:Aliases [{lhs} ...]	List the aliases [that start with {lhs}].
+
+EXAMPLE							    *cmdalias-example*
+>
+    :Alias runtime Runtime
+    :Alias find Find
+    :Alias <buffer> <expr> foo "read foo" . strftime('%Y') . ".txt"
+    :Aliases
+    :UnAlias find
+<
+==============================================================================
+INSTALLATION					       *cmdalias-installation*
+
+This script is packaged as a |vimball|. If you have the "gunzip" decompressor
+in your PATH, simply edit the *.vmb.gz package in Vim; otherwise, decompress
+the archive first, e.g. using WinZip. Inside Vim, install by sourcing the
+vimball or via the |:UseVimball| command. >
+    vim cmdalias*.vmb.gz
+    :so %
+To uninstall, use the |:RmVimball| command.
+
+DEPENDENCIES					       *cmdalias-dependencies*
+
+- Requires Vim 7.0 or higher.
+- Requires the |ingo-library.vim| plugin (vimscript #4433), version 1.010 or
+  higher.
+
+==============================================================================
+CONFIGURATION					      *cmdalias-configuration*
+
+For a permanent configuration, put the following commands into your |vimrc|:
+configvar
+							      *cmdalias-remap*
+plugmap
+==============================================================================
+INTEGRATION						*cmdalias-integration*
+
+==============================================================================
+LIMITATIONS						*cmdalias-limitations*
+
+KNOWN PROBLEMS					     *cmdalias-known-problems*
+
+TODO							       *cmdalias-todo*
+
+IDEAS							      *cmdalias-ideas*
+
+==============================================================================
+HISTORY							    *cmdalias-history*
+
+GOAL
+First published version.
+
+4.0.0	15-Jun-2011
+- Started development on replacing :cabbr with separate alias implementation.
+
+==============================================================================
+Copyright: (C) 2011-2015 Ingo Karkat
+           (C) 2003-2009 Hari Krishna Dara
+The GNU General Public License applies to this plugin; see
+http://www.gnu.org/copyleft/gpl.txt
+
+Maintainer:	Ingo Karkat <ingo@karkat.de>
+==============================================================================
+ vim:tw=78:ts=8:ft=help:norl:
